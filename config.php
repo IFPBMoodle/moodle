@@ -9,7 +9,7 @@ $CFG->dblibrary = 'native';
 $CFG->dbhost    = 'localhost';
 $CFG->dbname    = 'moodle';
 $CFG->dbuser    = 'root';
-$CFG->dbpass    = '1234';
+$CFG->dbpass    = '';
 $CFG->prefix    = 'mdl_';
 $CFG->dboptions = array (
   'dbpersist' => 0,
@@ -18,7 +18,7 @@ $CFG->dboptions = array (
 );
 
 $CFG->wwwroot   = 'http://localhost/moodle';
-$CFG->dataroot  = '/var/www/moodledata';
+$CFG->dataroot  = 'C:\\wamp\\moodledata';
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
