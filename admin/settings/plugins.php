@@ -138,6 +138,16 @@ if ($hassiteconfig) {
         $plugin->load_settings($ADMIN, 'editorsettings', $hassiteconfig);
     }
 
+    // Antivirus plugins.
+    $ADMIN->add('modules', new admin_category('antivirussettings', new lang_string('antiviruses', 'antivirus')));
+    $temp = new admin_settingpage('manageantiviruses', new lang_string('antivirussettings', 'antivirus'));
+    $temp->add(new admin_setting_manageantiviruses());
+    $ADMIN->add('antivirussettings', $temp);
+    foreach (core_plugin_manager::instance()->get_plugins_of_type('antivirus') as $plugin) {
+        /* @var \core\plugininfo\antivirus $plugin */
+        $plugin->load_settings($ADMIN, 'antivirussettings', $hassiteconfig);
+    }
+
 /// License types
     $ADMIN->add('modules', new admin_category('licensesettings', new lang_string('licenses')));
     $temp = new admin_settingpage('managelicenses', new lang_string('managelicenses', 'admin'));
@@ -177,6 +187,11 @@ if ($hassiteconfig) {
         $plugin->load_settings($ADMIN, 'filtersettings', $hassiteconfig);
     }
 
+    // Data format settings.
+    $ADMIN->add('modules', new admin_category('dataformatsettings', new lang_string('dataformats')));
+    $temp = new admin_settingpage('managedataformats', new lang_string('managedataformats'));
+    $temp->add(new admin_setting_managedataformats());
+    $ADMIN->add('dataformatsettings', $temp);
 
     //== Portfolio settings ==
     require_once($CFG->libdir. '/portfoliolib.php');
@@ -457,6 +472,49 @@ foreach ($pages as $page) {
     $ADMIN->add('reportplugins', $page);
 }
 
+if ($hassiteconfig) {
+    // Global Search engine plugins.
+    $ADMIN->add('modules', new admin_category('searchplugins', new lang_string('search', 'admin')));
+    $temp = new admin_settingpage('manageglobalsearch', new lang_string('globalsearchmanage', 'admin'));
+
+    $pages = array();
+    $engines = array();
+    foreach (core_component::get_plugin_list('search') as $engine => $plugindir) {
+        $engines[$engine] = new lang_string('pluginname', 'search_' . $engine);
+        $settingspath = "$plugindir/settings.php";
+        if (file_exists($settingspath)) {
+            $settings = new admin_settingpage('search' . $engine,
+                    new lang_string('pluginname', 'search_' . $engine), 'moodle/site:config');
+            include($settingspath);
+            if ($settings) {
+                $pages[] = $settings;
+            }
+        }
+    }
+
+    // Setup status.
+    $temp->add(new admin_setting_searchsetupinfo());
+
+    // Search engine selection.
+    $temp->add(new admin_setting_heading('searchengineheading', new lang_string('searchengine', 'admin'), ''));
+    $temp->add(new admin_setting_configselect('searchengine',
+                                new lang_string('selectsearchengine', 'admin'), '', 'solr', $engines));
+
+    // Enable search areas.
+    $temp->add(new admin_setting_heading('searchareasheading', new lang_string('availablesearchareas', 'admin'), ''));
+    $searchareas = \core_search\manager::get_search_areas_list();
+    foreach ($searchareas as $areaid => $searcharea) {
+        list($componentname, $varname) = $searcharea->get_config_var_name();
+        $temp->add(new admin_setting_configcheckbox($componentname . '/' . $varname . '_enabled', $searcharea->get_visible_name(true),
+            '', 1, 1, 0));
+    }
+    $ADMIN->add('searchplugins', $temp);
+
+    foreach ($pages as $page) {
+        $ADMIN->add('searchplugins', $page);
+    }
+}
+
 /// Add all admin tools
 if ($hassiteconfig) {
     $ADMIN->add('modules', new admin_category('tools', new lang_string('tools', 'admin')));
@@ -489,10 +547,9 @@ if ($hassiteconfig) {
 // Add Calendar type settings.
 if ($hassiteconfig) {
     $ADMIN->add('modules', new admin_category('calendartype', new lang_string('calendartypes', 'calendar')));
-    foreach (core_component::get_plugin_list_with_file('calendartype', 'settings.php') as $plugin => $settingspath) {
-        $settings = new admin_settingpage('calendartype_' . $plugin . '_settings', new lang_string('pluginname', 'calendartype_' . $plugin), 'moodle/site:config');
-        include($settingspath);
-        $ADMIN->add('calendartype', $settings);
+    foreach (core_plugin_manager::instance()->get_plugins_of_type('calendartype') as $plugin) {
+        /** @var \core\plugininfo\calendartype $plugin */
+        $plugin->load_settings($ADMIN, 'calendartype', $hassiteconfig);
     }
 }
 

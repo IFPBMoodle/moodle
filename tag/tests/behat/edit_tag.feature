@@ -18,8 +18,8 @@ Feature: Users can edit tags to add description or rename
       | manager1 | Acceptance test site | manager   |
       | editor1  | Acceptance test site | tageditor |
     And the following "tags" exist:
-      | name         | tagtype  |
-      | Neverusedtag | official |
+      | name         | isstandard |
+      | Neverusedtag | 1          |
 
   @javascript
   Scenario: User with tag editing capability can change tag description
@@ -36,14 +36,17 @@ Feature: Users can edit tags to add description or rename
     And I follow "Cat"
     And I follow "Edit this tag"
     And I should not see "Tag name"
-    And I should not see "Official"
+    And I should not see "Standard"
     And I set the following fields to these values:
       | Description | Description of tag 1 |
       | Related tags | Dog,  Turtle,Fish |
     And I press "Update"
     Then "Cat" "text" should exist in the ".breadcrumb-nav" "css_element"
-    And "Description of tag 1" "text" should exist in the "#tag-description" "css_element"
-    And I should see "Related tags: Dog, Turtle, Fish"
+    And "Description of tag 1" "text" should exist in the ".tag-description" "css_element"
+    And I should see "Related tags:" in the ".tag_list" "css_element"
+    And I should see "Dog" in the ".tag_list" "css_element"
+    And I should see "Turtle" in the ".tag_list" "css_element"
+    And I should see "Fish" in the ".tag_list" "css_element"
     And I log out
 
   @javascript
@@ -57,17 +60,22 @@ Feature: Users can edit tags to add description or rename
       | Tag name | Kitten |
       | Description | Description of tag 1 |
       | Related tags | Dog,  Turtle,Fish |
-      | Official | 0 |
+      | Standard | 0 |
     And I press "Update"
     Then "Kitten" "text" should exist in the ".breadcrumb-nav" "css_element"
-    And "Description of tag 1" "text" should exist in the "#tag-description" "css_element"
-    And I should see "Related tags: Dog, Turtle, Fish"
+    And "Description of tag 1" "text" should exist in the ".tag-description" "css_element"
+    And I should see "Related tags:" in the ".tag_list" "css_element"
+    And I should see "Dog" in the ".tag_list" "css_element"
+    And I should see "Turtle" in the ".tag_list" "css_element"
+    And I should see "Fish" in the ".tag_list" "css_element"
     And I follow "Edit this tag"
     And I click on "× Dog" "text"
     And I press "Update"
     Then "Kitten" "text" should exist in the ".breadcrumb-nav" "css_element"
-    And "Description of tag 1" "text" should exist in the "#tag-description" "css_element"
-    And I should see "Related tags: Turtle, Fish"
+    And "Description of tag 1" "text" should exist in the ".tag-description" "css_element"
+    And I should see "Related tags:" in the ".tag_list" "css_element"
+    And I should see "Turtle" in the ".tag_list" "css_element"
+    And I should see "Fish" in the ".tag_list" "css_element"
     And I should not see "Dog"
     And I log out
 
@@ -80,7 +88,7 @@ Feature: Users can edit tags to add description or rename
     And I set the following fields to these values:
       | Tag name | DOG |
     And I press "Update"
-    And I should see "DOG: Tag names already being used"
+    And I should see "Tag names already being used"
     And I set the following fields to these values:
       | Tag name | Kitten |
     And I press "Update"
@@ -96,36 +104,41 @@ Feature: Users can edit tags to add description or rename
   Scenario: Manager can change tag description and rename the tag from tag manage page
     When I log in as "manager1"
     And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
     And I click on "Edit this tag" "link" in the "Cat" "table_row"
     And I set the following fields to these values:
       | Tag name | Kitten |
       | Description | Description of tag 1 |
       | Related tags | Dog,  Turtle,Fish |
-      | Official | 0 |
+      | Standard | 0 |
     And I press "Update"
-    Then "Manage tags" "link" should exist in the ".breadcrumb-nav" "css_element"
+    Then "Default collection" "link" should exist in the ".breadcrumb-nav" "css_element"
     And I follow "Kitten"
-    And "Description of tag 1" "text" should exist in the "#tag-description" "css_element"
-    And I should see "Related tags: Dog, Turtle, Fish"
+    And "Description of tag 1" "text" should exist in the ".tag-description" "css_element"
+    And I should see "Related tags:" in the ".tag_list" "css_element"
+    And I should see "Dog" in the ".tag_list" "css_element"
+    And I should see "Turtle" in the ".tag_list" "css_element"
+    And I should see "Fish" in the ".tag_list" "css_element"
     And I log out
 
   Scenario: Renaming the tag in edit tag form from tag manage page
     When I log in as "manager1"
     And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
     And I click on "Edit this tag" "link" in the "Cat" "table_row"
     And I set the following fields to these values:
       | Tag name | DOG |
     And I press "Update"
-    And I should see "DOG: Tag names already being used"
+    And I should see "Tag names already being used"
     And I set the following fields to these values:
       | Tag name | Kitten |
     And I press "Update"
-    Then "Manage tags" "text" should exist in the ".breadcrumb-nav" "css_element"
+    Then "Default collection" "text" should exist in the ".breadcrumb-nav" "css_element"
     And I click on "Edit this tag" "link" in the "Kitten" "table_row"
     And I set the following fields to these values:
       | Tag name | KITTEN |
     And I press "Update"
-    And "Manage tags" "text" should exist in the ".breadcrumb-nav" "css_element"
+    And "Default collection" "text" should exist in the ".breadcrumb-nav" "css_element"
     And I should see "KITTEN"
     And I should not see "Kitten"
     And I log out
@@ -134,27 +147,28 @@ Feature: Users can edit tags to add description or rename
   Scenario: Renaming the tag using quick edit field on tag manage page
     When I log in as "manager1"
     And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
     # Renaming tag to a valid name
     And I click on "Edit tag name" "link" in the "Cat" "table_row"
     And I set the field "New name for tag Cat" to "Kitten"
     And I press key "13" in the field "New name for tag Cat"
     Then I should not see "Cat"
-    And "New name for tag" "field" should not be visible
+    And "New name for tag" "field" should not exist
     And I wait until "Kitten" "link" exists
-    And I follow "Manage tags"
+    And I follow "Default collection"
     And I should see "Kitten"
     And I should not see "Cat"
     # Renaming tag to an invalid name
     And I click on "Edit tag name" "link" in the "Turtle" "table_row"
     And I set the field "New name for tag Turtle" to "DOG"
     And I press key "13" in the field "New name for tag Turtle"
-    And I should see "Tag names already being used"
-    And I press "Ok"
-    And "New name for tag" "field" should not be visible
+    And I should see "The tag name is already in use. Do you want to combine these tags?"
+    And I press "Cancel"
+    And "New name for tag" "field" should not exist
     And I should see "Turtle"
     And I should see "Dog"
     And I should not see "DOG"
-    And I follow "Manage tags"
+    And I follow "Default collection"
     And I should see "Turtle"
     And I should see "Dog"
     And I should not see "DOG"
@@ -162,10 +176,63 @@ Feature: Users can edit tags to add description or rename
     And I click on "Edit tag name" "link" in the "Dog" "table_row"
     And I set the field "New name for tag Dog" to "Penguin"
     And I press key "27" in the field "New name for tag Dog"
-    And "New name for tag" "field" should not be visible
+    And "New name for tag" "field" should not exist
     And I should see "Turtle"
     And I should not see "Penguin"
-    And I follow "Manage tags"
+    And I follow "Default collection"
     And I should see "Turtle"
     And I should not see "Penguin"
+    And I log out
+
+  @javascript
+  Scenario: Combining tags when renaming
+    When I log in as "manager1"
+    And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
+    And I click on "Edit tag name" "link" in the "Turtle" "table_row"
+    And I set the field "New name for tag Turtle" to "DOG"
+    And I press key "13" in the field "New name for tag Turtle"
+    And I should see "The tag name is already in use. Do you want to combine these tags?"
+    And I press "Yes"
+    Then I should not see "Turtle"
+    And I should not see "DOG"
+    And I should see "Dog"
+    And I log out
+
+  @javascript
+  Scenario: Combining multiple tags
+    When I log in as "manager1"
+    And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
+    And I set the following fields to these values:
+      | Select tag Dog | 1 |
+      | Select tag Neverusedtag | 1 |
+      | Select tag Turtle | 1 |
+    And I press "Combine selected"
+    And I should see "Select the tag that will be used after combining"
+    And I click on "//form[@id='combinetags_form']//input[@type='radio'][3]" "xpath_element"
+    And I press "Continue"
+    Then I should see "Tags are combined"
+    And I should not see "Dog"
+    And I should not see "Neverusedtag"
+    And I should see "Turtle"
+    # Even though Turtle was not standard but at least one of combined tags was (Neverusedtag). Now Turtle is also standard.
+    And "Remove from standard tags" "link" should exist in the "Turtle" "table_row"
+    And I log out
+
+  Scenario: Filtering tags
+    When I log in as "manager1"
+    And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
+    And I should not see "Reset filter"
+    And I set the field "Search" to "t"
+    And I press "Search"
+    Then the field "Search" matches value "t"
+    And I should not see "Dog"
+    And I should see "Cat"
+    And I should see "Turtle"
+    And I follow "Reset filter"
+    And I should see "Dog"
+    And I should see "Cat"
+    And I should see "Turtle"
     And I log out

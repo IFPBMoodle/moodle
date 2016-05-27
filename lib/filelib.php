@@ -445,6 +445,8 @@ function file_prepare_draft_area(&$draftitemid, $contextid, $component, $fileare
 
 /**
  * Convert encoded URLs in $text from the @@PLUGINFILE@@/... form to an actual URL.
+ * Passing a new option reverse = true in the $options var will make the function to convert actual URLs in $text to encoded URLs
+ * in the @@PLUGINFILE@@ form.
  *
  * @category files
  * @global stdClass $CFG
@@ -454,7 +456,7 @@ function file_prepare_draft_area(&$draftitemid, $contextid, $component, $fileare
  * @param string $component
  * @param string $filearea helps identify the file area.
  * @param int $itemid helps identify the file area.
- * @param array $options text and file options ('forcehttps'=>false)
+ * @param array $options text and file options ('forcehttps'=>false), use reverse = true to reverse the behaviour of the function.
  * @return string the processed text.
  */
 function file_rewrite_pluginfile_urls($text, $file, $contextid, $component, $filearea, $itemid, array $options=null) {
@@ -479,7 +481,11 @@ function file_rewrite_pluginfile_urls($text, $file, $contextid, $component, $fil
         $baseurl = str_replace('http://', 'https://', $baseurl);
     }
 
-    return str_replace('@@PLUGINFILE@@/', $baseurl, $text);
+    if (!empty($options['reverse'])) {
+        return str_replace($baseurl, '@@PLUGINFILE@@/', $text);
+    } else {
+        return str_replace('@@PLUGINFILE@@/', $baseurl, $text);
+    }
 }
 
 /**
@@ -2654,6 +2660,35 @@ function file_modify_html_header($text) {
 }
 
 /**
+ * Tells whether the filename is executable.
+ *
+ * @link http://php.net/manual/en/function.is-executable.php
+ * @link https://bugs.php.net/bug.php?id=41062
+ * @param string $filename Path to the file.
+ * @return bool True if the filename exists and is executable; otherwise, false.
+ */
+function file_is_executable($filename) {
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        if (is_executable($filename)) {
+            return true;
+        } else {
+            $fileext = strrchr($filename, '.');
+            // If we have an extension we can check if it is listed as executable.
+            if ($fileext && file_exists($filename) && !is_dir($filename)) {
+                $winpathext = strtolower(getenv('PATHEXT'));
+                $winpathexts = explode(';', $winpathext);
+
+                return in_array(strtolower($fileext), $winpathexts);
+            }
+
+            return false;
+        }
+    } else {
+        return is_executable($filename);
+    }
+}
+
+/**
  * RESTful cURL class
  *
  * This is a wrapper class for curl, it is quite easy to use:
@@ -4504,6 +4539,14 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null) {
             if ($birecord->blockname !== $blockname) {
                 // somebody tries to gain illegal access, cm type must match the component!
                 send_file_not_found();
+            }
+
+            if ($context->get_course_context(false)) {
+                // If block is in course context, then check if user has capability to access course.
+                require_course_login($course);
+            } else if ($CFG->forcelogin) {
+                // If user is logged out, bp record will not be visible, even if the user would have access if logged in.
+                require_login();
             }
 
             $bprecord = $DB->get_record('block_positions', array('contextid' => $context->id, 'blockinstanceid' => $context->instanceid));

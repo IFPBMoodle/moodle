@@ -298,6 +298,11 @@ $CFG->admin = 'admin';
 // This setting will make some graphs (eg user logs) use lines instead of bars
 //      $CFG->preferlinegraphs = true;
 //
+// This setting allows you to specify a class to rewrite outgoing urls
+// enabling 'clean urls' in conjunction with an apache / nginx handler.
+// The handler must implement \core\output\url_rewriter.
+//      $CFG->urlrewriteclass = '\local_cleanurls\url_rewriter';
+//
 // Enabling this will allow custom scripts to replace existing moodle scripts.
 // For example: if $CFG->customscripts/course/view.php exists then
 // it will be used instead of $CFG->wwwroot/course/view.php
@@ -558,6 +563,9 @@ $CFG->admin = 'admin';
 // Prevent theme caching
 // $CFG->themedesignermode = true; // NOT FOR PRODUCTION SERVERS!
 //
+// Enable verbose debug information during fetching of email messages from IMAP server.
+// $CFG->debugimap = true;
+//
 // Prevent JS caching
 // $CFG->cachejs = false; // NOT FOR PRODUCTION SERVERS!
 //
@@ -588,6 +596,10 @@ $CFG->admin = 'admin';
 //
 // Divert all outgoing emails to this address to test and debug emailing features
 // $CFG->divertallemailsto = 'root@localhost.local'; // NOT FOR PRODUCTION SERVERS!
+//
+// Except for certain email addresses you want to let through for testing. Accepts
+// a comma separated list of regexes.
+// $CFG->divertallemailsexcept = 'tester@dev.com, fred(\+.*)?@example.com'; // NOT FOR PRODUCTION SERVERS!
 //
 // Uncomment if you want to allow empty comments when modifying install.xml files.
 // $CFG->xmldbdisablecommentchecking = true;    // NOT FOR PRODUCTION SERVERS!
@@ -664,18 +676,16 @@ $CFG->admin = 'admin';
 // params hierarchy. More info: http://docs.behat.org/guides/7.config.html
 // Example:
 //   $CFG->behat_config = array(
-//       'default' => array(
-//           'formatter' => array(
-//               'name' => 'pretty',
-//               'parameters' => array(
-//                   'decorated' => true,
-//                   'verbose' => false
-//               )
-//           )
-//       ),
 //       'Mac-Firefox' => array(
+//           'suites' => array (
+//               'default' => array(
+//                   'filters' => array(
+//                      'tags' => '~@_file_upload'
+//                   ),
+//               ),
+//           ),
 //           'extensions' => array(
-//               'Behat\MinkExtension\Extension' => array(
+//               'Behat\MinkExtension' => array(
 //                   'selenium2' => array(
 //                       'browser' => 'firefox',
 //                       'capabilities' => array(
@@ -688,7 +698,7 @@ $CFG->admin = 'admin';
 //       ),
 //       'Mac-Safari' => array(
 //           'extensions' => array(
-//               'Behat\MinkExtension\Extension' => array(
+//               'Behat\MinkExtension' => array(
 //                   'selenium2' => array(
 //                       'browser' => 'safari',
 //                       'capabilities' => array(
@@ -700,6 +710,20 @@ $CFG->admin = 'admin';
 //           )
 //       )
 //   );
+// You can also use the following config to override default Moodle configuration for Behat.
+// This config is limited to default suite and will be supported in later versions.
+// It will have precedence over $CFG->behat_config.
+// $CFG->behat_profiles = array(
+//     'phantomjs' => array(
+//         'browser' => 'phantomjs',
+//         'tags' => '~@_file_upload&&~@_alert&&~@_bug_phantomjs',
+//         'wd_host' => 'http://127.0.0.1:4443/wd/hub',
+//         'capabilities' => array(
+//             'platform' => 'Linux',
+//             'version' => 2.1
+//         )
+//     ),
+// );
 //
 // You can force the browser session (not user's sessions) to restart after N seconds. This could
 // be useful if you are using a cloud-based service with time restrictions in the browser side.
@@ -798,11 +822,6 @@ $CFG->admin = 'admin';
 // and 'gsdll32.dll' to a new folder without a space in the path)
 //      $CFG->pathtogs = '/usr/bin/gs';
 //
-// Clam AV path.
-// Probably something like /usr/bin/clamscan or /usr/bin/clamdscan. You need
-// this in order for clam AV to run.
-//      $CFG->pathtoclam = '';
-//
 // Path to du.
 // Probably something like /usr/bin/du. If you enter this, pages that display
 // directory contents will run much faster for directories with a lot of files.
@@ -821,6 +840,12 @@ $CFG->admin = 'admin';
 // Note that, for now, this only used by the profiling features
 // (Development->Profiling) built into Moodle.
 //      $CFG->pathtodot = '';
+//
+// Path to unoconv.
+// Probably something like /usr/bin/unoconv. Used as a fallback to convert between document formats.
+// Unoconv is used convert between file formats supported by LibreOffice.
+// Use a recent version of unoconv ( >= 0.7 ), older versions have trouble running from a webserver.
+//      $CFG->pathtounoconv = '';
 
 //=========================================================================
 // ALL DONE!  To continue installation, visit your main page with a browser

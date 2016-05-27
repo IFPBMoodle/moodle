@@ -18,7 +18,7 @@
 /**
  * Tag autocomplete field.
  *
- * Contains HTML class for editing tags, both official and personal.
+ * Contains HTML class for editing tags, both standard and not.
  *
  * @package   core_form
  * @copyright 2009 Tim Hunt
@@ -31,7 +31,7 @@ require_once($CFG->libdir . '/form/autocomplete.php');
 /**
  * Form field type for editing tags.
  *
- * HTML class for editing tags, both official and personal.
+ * HTML class for editing tags, both standard and not.
  *
  * @package   core_form
  * @copyright 2009 Tim Hunt
@@ -41,12 +41,14 @@ class MoodleQuickForm_tags extends MoodleQuickForm_autocomplete {
     /**
      * Inidcates that the user should be the usual interface, with the official
      * tags listed seprately, and a text box where they can type anything.
+     * @deprecated since 3.1
      * @var int
      */
     const DEFAULTUI = 'defaultui';
 
     /**
      * Indicates that the user should only be allowed to select official tags.
+     * @deprecated since 3.1
      * @var int
      */
     const ONLYOFFICIAL = 'onlyofficial';
@@ -54,14 +56,21 @@ class MoodleQuickForm_tags extends MoodleQuickForm_autocomplete {
     /**
      * Indicates that the user should just be given a text box to type in (they
      * can still type official tags though.
+     * @deprecated since 3.1
      * @var int
      */
     const NOOFFICIAL = 'noofficial';
 
     /**
-     * @var boolean $showingofficial Official tags shown? (if not, then don't show link to manage official tags).
+     * @var boolean $showstandard Standard tags suggested? (if not, then don't show link to manage standard tags).
      */
-    protected $showingofficial = false;
+    protected $showstandard = false;
+
+    /**
+     * Options passed when creating an element.
+     * @var array
+     */
+    protected $tagsoptions = array();
 
     /**
      * Constructor
@@ -72,34 +81,106 @@ class MoodleQuickForm_tags extends MoodleQuickForm_autocomplete {
      * @param mixed $attributes Either a typical HTML attribute string or an associative array.
      */
     public function __construct($elementName = null, $elementLabel = null, $options = array(), $attributes = null) {
-        if (!isset($options['display'])) {
-            $options['display'] = self::DEFAULTUI;
-        }
-
-        $this->showingofficial = $options['display'] != MoodleQuickForm_tags::NOOFFICIAL;
-
         $validoptions = array();
-        if ($this->showingofficial) {
-            $validoptions = $this->load_official_tags();
+
+        if (!empty($options)) {
+            // Only execute it when the element was created and $options has values set by user.
+            // In onQuickFormEvent() we make sure that $options is not empty even if developer left it empty.
+            $showstandard = core_tag_tag::BOTH_STANDARD_AND_NOT;
+            if (isset($options['showstandard'])) {
+                $showstandard = $options['showstandard'];
+            } else if (isset($options['display'])) {
+                debugging('Option "display" is deprecated, each tag area can be configured to show standard tags or not ' .
+                    'by admin or manager. If it is necessary for the developer to override it, please use "showstandard" option',
+                    DEBUG_DEVELOPER);
+                if ($options['display'] === self::NOOFFICIAL) {
+                    $showstandard = core_tag_tag::HIDE_STANDARD;
+                } else if ($options['display'] === self::ONLYOFFICIAL) {
+                    $showstandard = core_tag_tag::STANDARD_ONLY;
+                }
+            } else if (!empty($options['component']) && !empty($options['itemtype'])) {
+                $showstandard = core_tag_area::get_showstandard($options['component'], $options['itemtype']);
+            }
+
+            $this->tagsoptions = $options;
+
+            $this->showstandard = ($showstandard != core_tag_tag::HIDE_STANDARD);
+            if ($this->showstandard) {
+                $validoptions = $this->load_standard_tags();
+            }
+            // Option 'tags' allows us to type new tags.
+            $attributes['tags'] = ($showstandard != core_tag_tag::STANDARD_ONLY);
+            $attributes['multiple'] = 'multiple';
+            $attributes['placeholder'] = get_string('entertags', 'tag');
+            $attributes['showsuggestions'] = $this->showstandard;
         }
-        // 'tags' option allows us to type new tags.
-        if ($options['display'] == MoodleQuickForm_tags::ONLYOFFICIAL) {
-            $attributes['tags'] = false;
-        } else {
-            $attributes['tags'] = true;
-        }
-        $attributes['multiple'] = 'multiple';
-        $attributes['placeholder'] = get_string('entertags', 'tag');
-        $attributes['showsuggestions'] = $this->showingofficial;
 
         parent::__construct($elementName, $elementLabel, $validoptions, $attributes);
     }
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Called by HTML_QuickForm whenever form event is made on this element
+     *
+     * @param string $event Name of event
+     * @param mixed $arg event arguments
+     * @param object $caller calling object
+     * @return bool
+     */
+    public function onQuickFormEvent($event, $arg, &$caller) {
+        if ($event === 'createElement') {
+            $arg[2] += array('itemtype' => '', 'component' => '');
+        }
+        return parent::onQuickFormEvent($event, $arg, $caller);
+    }
+
+    /**
+     * Checks if tagging is enabled for this itemtype
+     *
+     * @return boolean
+     */
+    protected function is_tagging_enabled() {
+        if (!empty($this->tagsoptions['itemtype']) && !empty($this->tagsoptions['component'])) {
+            $enabled = core_tag_tag::is_enabled($this->tagsoptions['component'], $this->tagsoptions['itemtype']);
+            if ($enabled === false) {
+                return false;
+            }
+        }
+        // Backward compatibility with code developed before Moodle 3.0 where itemtype/component were not specified.
+        return true;
+    }
+
+    /**
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function MoodleQuickForm_tags($elementName = null, $elementLabel = null, $options = array(), $attributes = null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $elementLabel, $options, $attributes);
+    }
+
+    /**
+     * Finds the tag collection to use for standard tag selector
+     *
+     * @return int
+     */
+    protected function get_tag_collection() {
+        if (empty($this->tagsoptions['tagcollid']) && (empty($this->tagsoptions['itemtype']) ||
+                empty($this->tagsoptions['component']))) {
+            debugging('You need to specify \'itemtype\' and \'component\' of the tagged '
+                    . 'area in the tags form element options',
+                    DEBUG_DEVELOPER);
+        }
+        if (!empty($this->tagsoptions['tagcollid'])) {
+            return $this->tagsoptions['tagcollid'];
+        }
+        if ($this->tagsoptions['itemtype']) {
+            $this->tagsoptions['tagcollid'] = core_tag_area::get_collection($this->tagsoptions['component'],
+                    $this->tagsoptions['itemtype']);
+        } else {
+            $this->tagsoptions['tagcollid'] = core_tag_collection::get_default();
+        }
+        return $this->tagsoptions['tagcollid'];
     }
 
     /**
@@ -108,37 +189,59 @@ class MoodleQuickForm_tags extends MoodleQuickForm_autocomplete {
      * @return string
      */
     function toHtml(){
-        global $CFG, $OUTPUT;
-
-        if (empty($CFG->usetags)) {
-            debugging('A tags formslib field has been created even thought $CFG->usetags is false.', DEBUG_DEVELOPER);
-        }
+        global $OUTPUT;
 
         $managelink = '';
-        if (has_capability('moodle/tag:manage', context_system::instance()) && $this->showingofficial) {
-            $url = $CFG->wwwroot .'/tag/manage.php';
-            $managelink = ' ' . $OUTPUT->action_link($url, get_string('manageofficialtags', 'tag'));
+        if (has_capability('moodle/tag:manage', context_system::instance()) && $this->showstandard) {
+            $url = new moodle_url('/tag/manage.php', array('tc' => $this->get_tag_collection()));
+            $managelink = ' ' . $OUTPUT->action_link($url, get_string('managestandardtags', 'tag'));
         }
 
         return parent::toHTML() . $managelink;
     }
 
     /**
-     * Internal function to load official tags
+     * Accepts a renderer
      *
-     * @access protected
+     * @param HTML_QuickForm_Renderer $renderer An HTML_QuickForm_Renderer object
+     * @param bool $required Whether a group is required
+     * @param string $error An error message associated with a group
      */
-    protected function load_official_tags() {
-        global $CFG, $DB;
-
-        $namefield = empty($CFG->keeptagnamecase) ? 'name' : 'rawname';
-        $records = $DB->get_records('tag', array('tagtype' => 'official'), $namefield, 'id,' . $namefield);
-        $tags = array();
-
-        foreach ($records as $record) {
-            $tags[$record->$namefield] = $record->$namefield;
+    public function accept(&$renderer, $required = false, $error = null) {
+        if ($this->is_tagging_enabled()) {
+            $renderer->renderElement($this, $required, $error);
+        } else {
+            $renderer->renderHidden($this);
         }
-        return $tags;
     }
 
+    /**
+     * Internal function to load standard tags
+     */
+    protected function load_standard_tags() {
+        global $CFG, $DB;
+        if (!$this->is_tagging_enabled()) {
+            return array();
+        }
+        $namefield = empty($CFG->keeptagnamecase) ? 'name' : 'rawname';
+        $tags = $DB->get_records_menu('tag',
+            array('isstandard' => 1, 'tagcollid' => $this->get_tag_collection()),
+            $namefield, 'id,' . $namefield);
+        return array_combine($tags, $tags);
+    }
+
+    /**
+     * Returns a 'safe' element's value
+     *
+     * @param  array  $submitValues array of submitted values to search
+     * @param  bool   $assoc        whether to return the value as associative array
+     * @return mixed
+     */
+    public function exportValue(&$submitValues, $assoc = false) {
+        if (!$this->is_tagging_enabled()) {
+            return $assoc ? array($this->getName() => array()) : array();
+        }
+
+        return parent::exportValue($submitValues, $assoc);
+    }
 }

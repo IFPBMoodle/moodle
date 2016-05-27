@@ -51,9 +51,12 @@ class HTML_QuickForm_image extends HTML_QuickForm_input
     } // end class constructor
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_image($elementName=null, $src='', $attributes=null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $src, $attributes);
     }
 

@@ -572,9 +572,6 @@ if (!empty($_SERVER['HTTP_X_moz']) && $_SERVER['HTTP_X_moz'] === 'prefetch'){
 //point pear include path to moodles lib/pear so that includes and requires will search there for files before anywhere else
 //the problem is that we need specific version of quickforms and hacked excel files :-(
 ini_set('include_path', $CFG->libdir.'/pear' . PATH_SEPARATOR . ini_get('include_path'));
-//point zend include path to moodles lib/zend so that includes and requires will search there for files before anywhere else
-//please note zend library is supposed to be used only from web service protocol classes, it may be removed in future
-ini_set('include_path', $CFG->libdir.'/zend' . PATH_SEPARATOR . ini_get('include_path'));
 
 // Register our classloader, in theory somebody might want to replace it to load other hacked core classes.
 if (defined('COMPONENT_CLASSLOADER')) {
@@ -945,6 +942,17 @@ if ($USER && function_exists('apache_note')
             break;
     }
     apache_note('MOODLEUSER', $logname);
+}
+
+// Ensure the urlrewriteclass is setup correctly (to avoid crippling site).
+if (isset($CFG->urlrewriteclass)) {
+    if (!class_exists($CFG->urlrewriteclass)) {
+        debugging("urlrewriteclass {$CFG->urlrewriteclass} was not found, disabling.");
+        unset($CFG->urlrewriteclass);
+    } else if (!in_array('core\output\url_rewriter', class_implements($CFG->urlrewriteclass))) {
+        debugging("{$CFG->urlrewriteclass} does not implement core\output\url_rewriter, disabling.", DEBUG_DEVELOPER);
+        unset($CFG->urlrewriteclass);
+    }
 }
 
 // Use a custom script replacement if one exists

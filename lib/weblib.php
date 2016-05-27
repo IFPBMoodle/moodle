@@ -553,6 +553,38 @@ class moodle_url {
      * @return string Resulting URL
      */
     public function out($escaped = true, array $overrideparams = null) {
+
+        global $CFG;
+
+        if (!is_bool($escaped)) {
+            debugging('Escape parameter must be of type boolean, '.gettype($escaped).' given instead.');
+        }
+
+        $url = $this;
+
+        // Allow url's to be rewritten by a plugin.
+        if (isset($CFG->urlrewriteclass) && !isset($CFG->upgraderunning)) {
+            $class = $CFG->urlrewriteclass;
+            $pluginurl = $class::url_rewrite($url);
+            if ($pluginurl instanceof moodle_url) {
+                $url = $pluginurl;
+            }
+        }
+
+        return $url->raw_out($escaped, $overrideparams);
+
+    }
+
+    /**
+     * Output url without any rewrites
+     *
+     * This is identical in signature and use to out() but doesn't call the rewrite handler.
+     *
+     * @param bool $escaped Use &amp; as params separator instead of plain &
+     * @param array $overrideparams params to add to the output url, these override existing ones with the same name.
+     * @return string Resulting URL
+     */
+    public function raw_out($escaped = true, array $overrideparams = null) {
         if (!is_bool($escaped)) {
             debugging('Escape parameter must be of type boolean, '.gettype($escaped).' given instead.');
         }
@@ -673,6 +705,20 @@ class moodle_url {
     }
 
     /**
+     * Sets the scheme for the URI (the bit before ://)
+     *
+     * @param string $scheme
+     */
+    public function set_scheme($scheme) {
+        // See http://www.ietf.org/rfc/rfc3986.txt part 3.1.
+        if (preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*$/', $scheme)) {
+            $this->scheme = $scheme;
+        } else {
+            throw new coding_exception('Bad URL scheme.');
+        }
+    }
+
+    /**
      * Sets the url slashargument value.
      *
      * @param string $path usually file path
@@ -714,7 +760,7 @@ class moodle_url {
         if ($forcedownload) {
             $params['forcedownload'] = 1;
         }
-
+        $path = rtrim($path, '/');
         $url = new moodle_url($urlbase, $params);
         $url->set_slashargument($path);
         return $url;
@@ -1708,7 +1754,7 @@ function purify_html($text, $options = array()) {
         $config = HTMLPurifier_Config::createDefault();
 
         $config->set('HTML.DefinitionID', 'moodlehtml');
-        $config->set('HTML.DefinitionRev', 3);
+        $config->set('HTML.DefinitionRev', 4);
         $config->set('Cache.SerializerPath', $cachedir);
         $config->set('Cache.SerializerPermissions', $CFG->directorypermissions);
         $config->set('Core.NormalizeNewlines', false);
@@ -1750,6 +1796,9 @@ function purify_html($text, $options = array()) {
 
             // Use the built-in Ruby module to add annotation support.
             $def->manager->addModule(new HTMLPurifier_HTMLModule_Ruby());
+
+            // Use the custom Noreferrer module.
+            $def->manager->addModule(new HTMLPurifier_HTMLModule_Noreferrer());
         }
 
         $purifier = new HTMLPurifier($config);
@@ -1866,6 +1915,38 @@ function html_to_text($html, $width = 75, $dolinks = true) {
     $result = $h2t->getText();
 
     return $result;
+}
+
+/**
+ * Converts texts or strings to plain text.
+ *
+ * - When used to convert user input introduced in an editor the text format needs to be passed in $contentformat like we usually
+ *   do in format_text.
+ * - When this function is used for strings that are usually passed through format_string before displaying them
+ *   we need to set $contentformat to false. This will execute html_to_text as these strings can contain multilang tags if
+ *   multilang filter is applied to headings.
+ *
+ * @param string $content The text as entered by the user
+ * @param int|false $contentformat False for strings or the text format: FORMAT_MOODLE/FORMAT_HTML/FORMAT_PLAIN/FORMAT_MARKDOWN
+ * @return string Plain text.
+ */
+function content_to_text($content, $contentformat) {
+
+    switch ($contentformat) {
+        case FORMAT_PLAIN:
+            // Nothing here.
+            break;
+        case FORMAT_MARKDOWN:
+            $content = markdown_to_html($content);
+            $content = html_to_text($content, 75, false);
+            break;
+        default:
+            // FORMAT_HTML, FORMAT_MOODLE and $contentformat = false, the later one are strings usually formatted through
+            // format_string, we need to convert them from html because they can contain HTML (multilang filter).
+            $content = html_to_text($content, 75, false);
+    }
+
+    return trim($content, "\r\n ");
 }
 
 /**
@@ -2529,14 +2610,19 @@ function notice ($message, $link='', $course=null) {
  * @param moodle_url|string $url A moodle_url to redirect to. Strings are not to be trusted!
  * @param string $message The message to display to the user
  * @param int $delay The delay before redirecting
+ * @param string $messagetype The type of notification to show the message in. See constants on \core\output\notification.
  * @throws moodle_exception
  */
-function redirect($url, $message='', $delay=-1) {
+function redirect($url, $message='', $delay=null, $messagetype = \core\output\notification::NOTIFY_INFO) {
     global $OUTPUT, $PAGE, $CFG;
 
     if (CLI_SCRIPT or AJAX_SCRIPT) {
         // This is wrong - developers should not use redirect in these scripts but it should not be very likely.
         throw new moodle_exception('redirecterrordetected', 'error');
+    }
+
+    if ($delay === null) {
+        $delay = -1;
     }
 
     // Prevent debug errors - make sure context is properly initialised.
@@ -2629,10 +2715,18 @@ function redirect($url, $message='', $delay=-1) {
     $url = str_replace('&amp;', '&', $encodedurl);
 
     if (!empty($message)) {
-        if ($delay === -1 || !is_numeric($delay)) {
-            $delay = 3;
+        if (!$debugdisableredirect && !headers_sent()) {
+            // A message has been provided, and the headers have not yet been sent.
+            // Display the message as a notification on the subsequent page.
+            \core\notification::add($message, $messagetype);
+            $message = null;
+            $delay = 0;
+        } else {
+            if ($delay === -1 || !is_numeric($delay)) {
+                $delay = 3;
+            }
+            $message = clean_text($message);
         }
-        $message = clean_text($message);
     } else {
         $message = get_string('pageshouldredirect');
         $delay = 0;
@@ -2653,7 +2747,7 @@ function redirect($url, $message='', $delay=-1) {
     // Include a redirect message, even with a HTTP redirect, because that is recommended practice.
     if ($PAGE) {
         $CFG->docroot = false; // To prevent the link to moodle docs from being displayed on redirect page.
-        echo $OUTPUT->redirect_message($encodedurl, $message, $delay, $debugdisableredirect);
+        echo $OUTPUT->redirect_message($encodedurl, $message, $delay, $debugdisableredirect, $messagetype);
         exit;
     } else {
         echo bootstrap_renderer::early_redirect_message($encodedurl, $message, $delay);
@@ -3579,5 +3673,5 @@ function get_formatted_help_string($identifier, $component, $ajax = false, $a = 
  * @return string HTML to prevent password autofill
  */
 function prevent_form_autofill_password() {
-    return '<div class="hide"><input type="password" /></div>';
+    return '<div class="hide"><input type="text" class="ignoredirty" /><input type="password" class="ignoredirty" /></div>';
 }

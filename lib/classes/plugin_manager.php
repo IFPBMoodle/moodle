@@ -1665,6 +1665,7 @@ class core_plugin_manager {
             'theme' => array('mymobile', 'afterburner', 'anomaly', 'arialist', 'binarius', 'boxxie', 'brick', 'formal_white',
                 'formfactor', 'fusion', 'leatherbound', 'magazine', 'nimble', 'nonzero', 'overlay', 'serenity', 'sky_high',
                 'splash', 'standard', 'standardold'),
+            'webservice' => array('amf'),
         );
 
         if (!isset($plugins[$type])) {
@@ -1682,6 +1683,10 @@ class core_plugin_manager {
     public static function standard_plugins_list($type) {
 
         $standard_plugins = array(
+
+            'antivirus' => array(
+                'clamav'
+            ),
 
             'atto' => array(
                 'accessibilitychecker', 'accessibilityhelper', 'align',
@@ -1705,7 +1710,7 @@ class core_plugin_manager {
             ),
 
             'auth' => array(
-                'cas', 'db', 'email', 'fc', 'imap', 'ldap', 'manual', 'mnet',
+                'cas', 'db', 'email', 'fc', 'imap', 'ldap', 'lti', 'manual', 'mnet',
                 'nntp', 'nologin', 'none', 'pam', 'pop3', 'radius',
                 'shibboleth', 'webservice'
             ),
@@ -1719,8 +1724,8 @@ class core_plugin_manager {
                 'blog_menu', 'blog_recent', 'blog_tags', 'calendar_month',
                 'calendar_upcoming', 'comments', 'community',
                 'completionstatus', 'course_list', 'course_overview',
-                'course_summary', 'feedback', 'glossary_random', 'html',
-                'login', 'mentees', 'messages', 'mnet_hosts', 'myprofile',
+                'course_summary', 'feedback', 'globalsearch', 'glossary_random', 'html',
+                'login', 'lp', 'mentees', 'messages', 'mnet_hosts', 'myprofile',
                 'navigation', 'news_items', 'online_users', 'participants',
                 'private_files', 'quiz_results', 'recent_activity',
                 'rss_client', 'search_forums', 'section_links',
@@ -1753,6 +1758,10 @@ class core_plugin_manager {
                 'number', 'picture', 'radiobutton', 'text', 'textarea', 'url'
             ),
 
+            'dataformat' => array(
+                'html', 'csv', 'json', 'excel', 'ods',
+            ),
+
             'datapreset' => array(
                 'imagegallery'
             ),
@@ -1763,7 +1772,7 @@ class core_plugin_manager {
 
             'enrol' => array(
                 'category', 'cohort', 'database', 'flatfile',
-                'guest', 'imsenterprise', 'ldap', 'manual', 'meta', 'mnet',
+                'guest', 'imsenterprise', 'ldap', 'lti', 'manual', 'meta', 'mnet',
                 'paypal', 'self'
             ),
 
@@ -1860,9 +1869,9 @@ class core_plugin_manager {
             ),
 
             'report' => array(
-                'backups', 'completion', 'configlog', 'courseoverview', 'eventlist',
-                'log', 'loglive', 'outline', 'participation', 'progress', 'questioninstances', 'security', 'stats', 'performance',
-                'usersessions',
+                'backups', 'competency', 'completion', 'configlog', 'courseoverview', 'eventlist',
+                'log', 'loglive', 'outline', 'participation', 'progress', 'questioninstances', 'search',
+                'security', 'stats', 'performance', 'usersessions'
             ),
 
             'repository' => array(
@@ -1870,6 +1879,10 @@ class core_plugin_manager {
                 'flickr', 'flickr_public', 'googledocs', 'local', 'merlot',
                 'picasa', 'recent', 'skydrive', 's3', 'upload', 'url', 'user', 'webdav',
                 'wikimedia', 'youtube'
+            ),
+
+            'search' => array(
+                'solr'
             ),
 
             'scormreport' => array(
@@ -1889,15 +1902,15 @@ class core_plugin_manager {
             ),
 
             'tool' => array(
-                'assignmentupgrade', 'availabilityconditions', 'behat', 'capability', 'customlang',
+                'assignmentupgrade', 'availabilityconditions', 'behat', 'capability', 'cohortroles', 'customlang',
                 'dbtransfer', 'filetypes', 'generator', 'health', 'innodb', 'installaddon',
-                'langimport', 'log', 'messageinbound', 'multilangupgrade', 'monitor', 'phpunit', 'profiling',
-                'replace', 'spamcleaner', 'task', 'templatelibrary',
+                'langimport', 'log', 'lp', 'lpmigrate', 'messageinbound', 'mobile', 'multilangupgrade', 'monitor',
+                'phpunit', 'profiling', 'recyclebin', 'replace', 'spamcleaner', 'task', 'templatelibrary',
                 'unittest', 'uploadcourse', 'uploaduser', 'unsuproles', 'xmldb'
             ),
 
             'webservice' => array(
-                'amf', 'rest', 'soap', 'xmlrpc'
+                'rest', 'soap', 'xmlrpc'
             ),
 
             'workshopallocation' => array(

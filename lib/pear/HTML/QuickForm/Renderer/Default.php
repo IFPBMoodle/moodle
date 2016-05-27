@@ -146,9 +146,12 @@ class HTML_QuickForm_Renderer_Default extends HTML_QuickForm_Renderer
     } // end constructor
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_Renderer_Default() {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct();
     } // end constructor
 

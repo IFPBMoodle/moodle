@@ -52,9 +52,12 @@ class HTML_QuickForm_xbutton extends HTML_QuickForm_element
     }
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_xbutton($elementName = null, $elementContent = null, $attributes = null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $elementContent, $attributes);
     }
 

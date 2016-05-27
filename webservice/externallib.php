@@ -193,6 +193,9 @@ class core_webservice_external extends external_api {
         // User max upload file size. -1 means the user can ignore the upload file size.
         $siteinfo['usermaxuploadfilesize'] = get_user_max_upload_file_size($context, $CFG->maxbytes);
 
+        // User home page.
+        $siteinfo['userhomepage'] = get_home_page();
+
         return $siteinfo;
     }
 
@@ -251,70 +254,11 @@ class core_webservice_external extends external_api {
                                     'user quota (bytes). 0 means user can ignore the quota', VALUE_OPTIONAL),
                 'usermaxuploadfilesize' => new external_value(PARAM_INT,
                                             'user max upload file size (bytes). -1 means the user can ignore the upload file size',
-                                            VALUE_OPTIONAL)
+                                            VALUE_OPTIONAL),
+                'userhomepage' => new external_value(PARAM_INT,
+                                                        'the default home page for the user: 0 for the site home, 1 for dashboard',
+                                                        VALUE_OPTIONAL)
             )
         );
-    }
-}
-
-/**
- * Deprecated web service related functions
- *
- * @package    core_webservice
- * @category   external
- * @copyright  2011 Jerome Mouneyrac <jerome@moodle.com>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @deprecated Moodle 2.2 MDL-29106 - please do not use this class any more.
- * @see core_webservice_external
- * @since Moodle 2.1
- */
-class moodle_webservice_external extends external_api {
-
-    /**
-     * Returns description of method parameters
-     *
-     * @return external_function_parameters
-     * @deprecated Moodle 2.2 - please do not use this function any more.
-     * @see core_webservice_external::get_site_info_parameters
-     * @since Moodle 2.1
-     */
-    public static function get_siteinfo_parameters() {
-        return core_webservice_external::get_site_info_parameters();
-    }
-
-    /**
-     * Return user information including profile picture + basic site information
-     * Note:
-     * - no capability checking because we return just known information by logged user
-     *
-     * @param array $serviceshortnames of service shortnames - the functions of these services will be returned
-     * @return array
-     * @deprecated Moodle 2.2 - please do not use this function any more.
-     * @see core_webservice_external::get_site_info
-     * @since Moodle 2.1
-     */
-    public function get_siteinfo($serviceshortnames = array()) {
-        return core_webservice_external::get_site_info($serviceshortnames);
-    }
-
-    /**
-     * Returns description of method result value
-     *
-     * @return external_single_structure
-     * @deprecated Moodle 2.2 - please do not use this function any more.
-     * @see core_webservice_external::get_site_info_returns
-     * @since Moodle 2.1
-     */
-    public static function get_siteinfo_returns() {
-        return core_webservice_external::get_site_info_returns();
-    }
-
-    /**
-     * Marking the method as deprecated.
-     *
-     * @return bool
-     */
-    public static function get_siteinfo_is_deprecated() {
-        return true;
     }
 }

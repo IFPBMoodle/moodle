@@ -764,7 +764,7 @@ function message_get_recent_conversations($user, $limitfrom=0, $limitto=100) {
                    ) messagesubset ON messagesubset.messageid = message.id
               JOIN {user} otheruser ON (message.useridfrom = :userid4 AND message.useridto = otheruser.id)
                 OR (message.useridto   = :userid5 AND message.useridfrom   = otheruser.id)
-         LEFT JOIN {message_contacts} contact ON contact.userid  = :userid3 AND contact.userid = otheruser.id
+         LEFT JOIN {message_contacts} contact ON contact.userid  = :userid3 AND contact.contactid = otheruser.id
              WHERE otheruser.deleted = 0 AND message.notification = 0
           ORDER BY message.timecreated DESC";
     $params = array(
@@ -1429,6 +1429,9 @@ function message_print_search_results($frm, $showicontext=false, $currentuser=nu
                 // Load user-to record.
                 if ($message->useridto !== $USER->id) {
                     $userto = core_user::get_user($message->useridto);
+                    if ($userto === false) {
+                        $userto = core_user::get_noreply_user();
+                    }
                     $tocontact = (array_key_exists($message->useridto, $contacts) and
                                     ($contacts[$message->useridto]->blocked == 0) );
                     $toblocked = (array_key_exists($message->useridto, $contacts) and
@@ -1442,6 +1445,9 @@ function message_print_search_results($frm, $showicontext=false, $currentuser=nu
                 // Load user-from record.
                 if ($message->useridfrom !== $USER->id) {
                     $userfrom = core_user::get_user($message->useridfrom);
+                    if ($userfrom === false) {
+                        $userfrom = core_user::get_noreply_user();
+                    }
                     $fromcontact = (array_key_exists($message->useridfrom, $contacts) and
                                     ($contacts[$message->useridfrom]->blocked == 0) );
                     $fromblocked = (array_key_exists($message->useridfrom, $contacts) and
@@ -1528,11 +1534,7 @@ function message_print_user ($user=false, $iscontact=false, $isblocked=false, $i
 
     if ($user === false) {
         echo $OUTPUT->user_picture($USER, $userpictureparams);
-    } else if (core_user::is_real_user($user->id)) { // If not real user, then don't show any links.
-        $userpictureparams['link'] = false;
-        echo $OUTPUT->user_picture($USER, $userpictureparams);
-        echo fullname($user);
-    } else {
+    } else if (core_user::is_real_user($user->id)) {
         echo $OUTPUT->user_picture($user, $userpictureparams);
 
         $link = new moodle_url("/message/index.php?id=$user->id");
@@ -1552,6 +1554,11 @@ function message_print_user ($user=false, $iscontact=false, $isblocked=false, $i
         } else {
             message_contact_link($user->id, 'block', $return, $script, $includeicontext);
         }
+    } else {
+        // If not real user, then don't show any links.
+        $userpictureparams['link'] = false;
+        // Stock profile picture should be displayed.
+        echo $OUTPUT->user_picture($user, $userpictureparams);
     }
 }
 

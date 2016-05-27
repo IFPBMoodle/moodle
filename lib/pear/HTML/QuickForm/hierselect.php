@@ -126,9 +126,12 @@ class HTML_QuickForm_hierselect extends HTML_QuickForm_group
     } //end constructor
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_hierselect($elementName=null, $elementLabel=null, $attributes=null, $separator=null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $elementLabel, $attributes, $separator);
     }
 

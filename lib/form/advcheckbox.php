@@ -61,7 +61,7 @@ class MoodleQuickForm_advcheckbox extends HTML_QuickForm_advcheckbox{
             $values = array(0, 1);
         }
 
-        if (!is_null($attributes['group'])) {
+        if (!empty($attributes['group'])) {
 
             $this->_group = 'checkboxgroup' . $attributes['group'];
             unset($attributes['group']);
@@ -85,9 +85,12 @@ class MoodleQuickForm_advcheckbox extends HTML_QuickForm_advcheckbox{
     }
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function MoodleQuickForm_advcheckbox($elementName=null, $elementLabel=null, $text=null, $attributes=null, $values=null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $elementLabel, $text, $attributes, $values);
     }
 
@@ -127,5 +130,4 @@ class MoodleQuickForm_advcheckbox extends HTML_QuickForm_advcheckbox{
         }
         return $output;
     }
-
 }

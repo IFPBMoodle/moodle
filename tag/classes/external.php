@@ -51,7 +51,9 @@ class core_tag_external extends external_api {
                             'description' => new external_value(PARAM_RAW, 'tag description', VALUE_OPTIONAL),
                             'descriptionformat' => new external_value(PARAM_INT, 'tag description format', VALUE_OPTIONAL),
                             'flag' => new external_value(PARAM_INT, 'flag', VALUE_OPTIONAL),
-                            'official' => new external_value(PARAM_INT, 'whether this flag is official', VALUE_OPTIONAL),
+                            'official' => new external_value(PARAM_INT,
+                                '(deprecated, use isstandard) whether this flag is standard', VALUE_OPTIONAL),
+                            'isstandard' => new external_value(PARAM_INT, 'whether this flag is standard', VALUE_OPTIONAL),
                         )
                     )
                 )
@@ -66,7 +68,6 @@ class core_tag_external extends external_api {
      */
     public static function update_tags($tags) {
         global $CFG, $PAGE, $DB;
-        require_once($CFG->dirroot.'/tag/lib.php');
 
         // Validate and normalize parameters.
         $tags = self::validate_parameters(self::update_tags_parameters(), array('tags' => $tags));
@@ -87,8 +88,6 @@ class core_tag_external extends external_api {
                 $tag['rawname'] = clean_param($tag['rawname'], PARAM_TAG);
                 if (empty($tag['rawname'])) {
                     unset($tag['rawname']);
-                } else {
-                    $tag['name'] = core_text::strtolower($tag['rawname']);
                 }
             }
             if (!$canmanage) {
@@ -109,7 +108,7 @@ class core_tag_external extends external_api {
                 );
                 continue;
             }
-            if (!$tagobject = $DB->get_record('tag', array('id' => $tag['id']))) {
+            if (!$tagobject = core_tag_tag::get($tag['id'], '*')) {
                 $warnings[] = array(
                     'item' => $tag['id'],
                     'warningcode' => 'tagnotfound',
@@ -118,7 +117,7 @@ class core_tag_external extends external_api {
                 continue;
             }
             // First check if new tag name is allowed.
-            if (!empty($tag['name']) && ($existing = $DB->get_record('tag', array('name' => $tag['name']), 'id'))) {
+            if (!empty($tag['rawname']) && ($existing = core_tag_tag::get_by_name($tagobject->tagcollid, $tag['rawname']))) {
                 if ($existing->id != $tag['id']) {
                     $warnings[] = array(
                         'item' => $tag['id'],
@@ -129,26 +128,22 @@ class core_tag_external extends external_api {
                 }
             }
             if (array_key_exists('official', $tag)) {
-                $tag['tagtype'] = $tag['official'] ? 'official' : 'default';
+                // Parameter 'official' deprecated and replaced with 'isstandard'.
+                $tag['isstandard'] = $tag['official'] ? 1 : 0;
                 unset($tag['official']);
             }
-            $tag['timemodified'] = time();
-            $DB->update_record('tag', $tag);
-
-            foreach ($tag as $key => $value) {
-                $tagobject->$key = $value;
+            if (isset($tag['flag'])) {
+                if ($tag['flag']) {
+                    $tagobject->flag();
+                } else {
+                    $tagobject->reset_flag();
+                }
+                unset($tag['flag']);
             }
-
-            $event = \core\event\tag_updated::create(array(
-                'objectid' => $tagobject->id,
-                'relateduserid' => $tagobject->userid,
-                'context' => context_system::instance(),
-                'other' => array(
-                    'name' => $tagobject->name,
-                    'rawname' => $tagobject->rawname
-                )
-            ));
-            $event->trigger();
+            unset($tag['id']);
+            if (count($tag)) {
+                $tagobject->update($tag);
+            }
         }
         return array('warnings' => $warnings);
     }
@@ -192,14 +187,13 @@ class core_tag_external extends external_api {
      */
     public static function get_tags($tags) {
         global $CFG, $PAGE, $DB;
-        require_once($CFG->dirroot.'/tag/lib.php');
 
         // Validate and normalize parameters.
         $tags = self::validate_parameters(self::get_tags_parameters(), array('tags' => $tags));
 
-        require_login(null, false, null, false, true);
-
         $systemcontext = context_system::instance();
+        self::validate_context($systemcontext);
+
         $canmanage = has_capability('moodle/tag:manage', $systemcontext);
         $canedit = has_capability('moodle/tag:edit', $systemcontext);
 
@@ -226,11 +220,10 @@ class core_tag_external extends external_api {
             $rv = $tagoutput->export_for_template($renderer);
             if (!$canmanage) {
                 if (!$canedit) {
+                    unset($rv->isstandard);
                     unset($rv->official);
                 }
                 unset($rv->flag);
-                unset($rv->changetypeurl);
-                unset($rv->changeflagurl);
             }
             $return[] = $rv;
         }
@@ -248,19 +241,96 @@ class core_tag_external extends external_api {
                 'tags' => new external_multiple_structure( new external_single_structure(
                     array(
                         'id' => new external_value(PARAM_INT, 'tag id'),
+                        'tagcollid' => new external_value(PARAM_INT, 'tag collection id'),
                         'name' => new external_value(PARAM_TAG, 'name'),
                         'rawname' => new external_value(PARAM_RAW, 'tag raw name (may contain capital letters)'),
                         'description' => new external_value(PARAM_RAW, 'tag description'),
                         'descriptionformat' => new external_format_value(PARAM_INT, 'tag description format'),
                         'flag' => new external_value(PARAM_INT, 'flag', VALUE_OPTIONAL),
-                        'official' => new external_value(PARAM_INT, 'whether this flag is official', VALUE_OPTIONAL),
+                        'official' => new external_value(PARAM_INT,
+                            'whether this flag is standard (deprecated, use isstandard)', VALUE_OPTIONAL),
+                        'isstandard' => new external_value(PARAM_INT, 'whether this flag is standard', VALUE_OPTIONAL),
                         'viewurl' => new external_value(PARAM_URL, 'URL to view'),
-                        'changetypeurl' => new external_value(PARAM_URL, 'URL to change type (official or not)', VALUE_OPTIONAL),
-                        'changeflagurl' => new external_value(PARAM_URL, 'URL to set or reset flag', VALUE_OPTIONAL),
                     ), 'information about one tag')
                 ),
                 'warnings' => new external_warnings()
             )
+        );
+    }
+
+    /**
+     * Parameters for function get_tagindex()
+     *
+     * @return external_function_parameters
+     */
+    public static function get_tagindex_parameters() {
+        return new external_function_parameters(
+            array(
+                'tagindex' => new external_single_structure(array(
+                    'tag' => new external_value(PARAM_TAG, 'tag name'),
+                    'tc' => new external_value(PARAM_INT, 'tag collection id'),
+                    'ta' => new external_value(PARAM_INT, 'tag area id'),
+                    'excl' => new external_value(PARAM_BOOL, 'exlusive mode for this tag area', VALUE_OPTIONAL, 0),
+                    'from' => new external_value(PARAM_INT, 'context id where the link was displayed', VALUE_OPTIONAL, 0),
+                    'ctx' => new external_value(PARAM_INT, 'context id where to search for items', VALUE_OPTIONAL, 0),
+                    'rec' => new external_value(PARAM_INT, 'search in the context recursive', VALUE_OPTIONAL, 1),
+                    'page' => new external_value(PARAM_INT, 'page number (0-based)', VALUE_OPTIONAL, 0),
+                ), 'parameters')
+            )
+        );
+    }
+
+    /**
+     * Get tags by their ids
+     *
+     * @param array $params
+     */
+    public static function get_tagindex($params) {
+        global $PAGE;
+        // Validate and normalize parameters.
+        $tagindex = self::validate_parameters(
+                self::get_tagindex_parameters(), array('tagindex' => $params));
+        $params = $tagindex['tagindex'] + array(
+            'excl' => 0,
+            'from' => 0,
+            'ctx' => 0,
+            'rec' => 1,
+            'page' => 0
+        );
+
+        // Login to the course / module if applicable.
+        $context = $params['ctx'] ? context::instance_by_id($params['ctx']) : context_system::instance();
+        self::validate_context($context);
+
+        $tag = core_tag_tag::get_by_name($params['tc'], $params['tag'], '*', MUST_EXIST);
+        $tagareas = core_tag_collection::get_areas($params['tc']);
+        $tagindex = $tag->get_tag_index($tagareas[$params['ta']], $params['excl'], $params['from'],
+                $params['ctx'], $params['rec'], $params['page']);
+        $renderer = $PAGE->get_renderer('core');
+        return $tagindex->export_for_template($renderer);
+    }
+
+    /**
+     * Return structure for get_tag()
+     *
+     * @return external_description
+     */
+    public static function get_tagindex_returns() {
+        return new external_single_structure(
+            array(
+                'tagid' => new external_value(PARAM_INT, 'tag id'),
+                'ta' => new external_value(PARAM_INT, 'tag area id'),
+                'component' => new external_value(PARAM_COMPONENT, 'component'),
+                'itemtype' => new external_value(PARAM_NOTAGS, 'itemtype'),
+                'nextpageurl' => new external_value(PARAM_URL, 'URL for the next page', VALUE_OPTIONAL),
+                'prevpageurl' => new external_value(PARAM_URL, 'URL for the next page', VALUE_OPTIONAL),
+                'exclusiveurl' => new external_value(PARAM_URL, 'URL for exclusive link', VALUE_OPTIONAL),
+                'exclusivetext' => new external_value(PARAM_TEXT, 'text for exclusive link', VALUE_OPTIONAL),
+                'title' => new external_value(PARAM_RAW, 'title'),
+                'content' => new external_value(PARAM_RAW, 'title'),
+                'hascontent' => new external_value(PARAM_INT, 'whether the content is present'),
+                'anchor' => new external_value(PARAM_TEXT, 'name of anchor', VALUE_OPTIONAL),
+            ), 'tag index'
         );
     }
 }

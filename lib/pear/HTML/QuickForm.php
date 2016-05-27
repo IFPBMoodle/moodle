@@ -302,9 +302,12 @@ class HTML_QuickForm extends HTML_Common {
     } // end constructor
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm($formName='', $method='post', $action='', $target='', $attributes=null, $trackSubmit = false) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($formName, $method, $action, $target, $attributes, $trackSubmit);
     }
 
@@ -1058,9 +1061,6 @@ class HTML_QuickForm extends HTML_Common {
         if (!isset($this->_rules[$element])) {
             $this->_rules[$element] = array();
         }
-        if ($validation == 'client') {
-            $this->updateAttributes(array('onsubmit' => 'try { var myValidator = validate_' . $this->_attributes['id'] . '; } catch(e) { return true; } return myValidator(this);'));
-        }
         $this->_rules[$element][] = array(
             'type'        => $type,
             'format'      => $format,
@@ -1129,9 +1129,6 @@ class HTML_QuickForm extends HTML_Common {
                         $this->_required[] = $elementName;
                         $required++;
                     }
-                    if ('client' == $validation) {
-                        $this->updateAttributes(array('onsubmit' => 'try { var myValidator = validate_' . $this->_attributes['id'] . '; } catch(e) { return true; } return myValidator(this);'));
-                    }
                 }
             }
             if ($required > 0 && count($groupObj->getElements()) == $required) {
@@ -1162,9 +1159,6 @@ class HTML_QuickForm extends HTML_Common {
                                             'reset'      => $reset);
             if ($type == 'required') {
                 $this->_required[] = $group;
-            }
-            if ($validation == 'client') {
-                $this->updateAttributes(array('onsubmit' => 'try { var myValidator = validate_' . $this->_attributes['id'] . '; } catch(e) { return true; } return myValidator(this);'));
             }
         }
     } // end func addGroupRule
@@ -2001,10 +1995,13 @@ class HTML_QuickForm_Error extends PEAR_Error {
     }
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_Error($code = QUICKFORM_ERROR, $mode = PEAR_ERROR_RETURN,
                          $level = E_USER_NOTICE, $debuginfo = null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($code, $mode, $level, $debuginfo);
     }
 

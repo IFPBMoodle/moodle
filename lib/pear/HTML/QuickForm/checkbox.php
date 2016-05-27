@@ -66,9 +66,12 @@ class HTML_QuickForm_checkbox extends HTML_QuickForm_input
     } //end constructor
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function HTML_QuickForm_checkbox($elementName=null, $elementLabel=null, $text='', $attributes=null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementName, $elementLabel, $text, $attributes);
     }
 

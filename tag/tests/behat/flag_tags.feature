@@ -15,8 +15,8 @@ Feature: Users can flag tags and manager can reset flags
       | user     | course               | role    |
       | manager1 | Acceptance test site | manager |
     And the following "tags" exist:
-      | name         | tagtype  |
-      | Neverusedtag | official |
+      | name         | isstandard |
+      | Neverusedtag | 1          |
     And I log in as "admin"
     And I set the following system permissions of "Authenticated user" role:
       | capability                   | permission |
@@ -29,13 +29,11 @@ Feature: Users can flag tags and manager can reset flags
     And I follow "Badtag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
     And I navigate to "Participants" node in "Site pages"
     And I follow "User 1"
     And I follow "Sweartag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
     And I log out
     And I log in as "user3"
     And I navigate to "Participants" node in "Site pages"
@@ -43,32 +41,13 @@ Feature: Users can flag tags and manager can reset flags
     And I follow "Sweartag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
-    And I log out
-
-  Scenario: Managing tag flags with javascript disabled
-    When I log in as "manager1"
-    And I navigate to "Manage tags" node in "Site administration > Appearance"
-    Then "Sweartag" "link" should appear before "Badtag" "link"
-    And "Badtag" "link" should appear before "Nicetag" "link"
-    And "(2)" "text" should exist in the "//tr[contains(.,'Sweartag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(1)" "text" should exist in the "//tr[contains(.,'Badtag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(" "text" should not exist in the "//tr[contains(.,'Nicetag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(" "text" should not exist in the "//tr[contains(.,'Neverusedtag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And I click on "Reset flag" "link" in the "Sweartag" "table_row"
-    And I click on "Reset flag" "link" in the "Badtag" "table_row"
-    And I click on "Flag as inappropriate" "link" in the "Sweartag" "table_row"
-    And I click on "Flag as inappropriate" "link" in the "Nicetag" "table_row"
-    And "(1)" "text" should exist in the "//tr[contains(.,'Sweartag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(1)" "text" should exist in the "//tr[contains(.,'Nicetag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(" "text" should not exist in the "//tr[contains(.,'Badtag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And "(" "text" should not exist in the "//tr[contains(.,'Neverusedtag')]//td[contains(@class,'col-flag')]" "xpath_element"
     And I log out
 
   @javascript
-  Scenario: Managing tag flags with javascript enabled
+  Scenario: Managing tag flags
     When I log in as "manager1"
     And I navigate to "Manage tags" node in "Site administration > Appearance"
+    And I follow "Default collection"
     Then "Sweartag" "link" should appear before "Badtag" "link"
     And "Badtag" "link" should appear before "Nicetag" "link"
     And "(2)" "text" should exist in the "//tr[contains(.,'Sweartag')]//td[contains(@class,'col-flag')]" "xpath_element"
@@ -84,7 +63,7 @@ Feature: Users can flag tags and manager can reset flags
     And "(1)" "text" should exist in the "//tr[contains(.,'Nicetag')]//td[contains(@class,'col-flag')]" "xpath_element"
     And "(" "text" should not exist in the "//tr[contains(.,'Badtag')]//td[contains(@class,'col-flag')]" "xpath_element"
     And "(" "text" should not exist in the "//tr[contains(.,'Neverusedtag')]//td[contains(@class,'col-flag')]" "xpath_element"
-    And I follow "Manage tags"
+    And I follow "Default collection"
     And "Nicetag" "link" should appear before "Sweartag" "link"
     And "Sweartag" "link" should appear before "Badtag" "link"
     And "(1)" "text" should exist in the "//tr[contains(.,'Sweartag')]//td[contains(@class,'col-flag')]" "xpath_element"

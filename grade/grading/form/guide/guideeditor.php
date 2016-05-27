@@ -58,9 +58,12 @@ class moodlequickform_guideeditor extends HTML_QuickForm_input {
     }
 
     /**
-     * Old syntax of class constructor for backward compatibility.
+     * Old syntax of class constructor. Deprecated in PHP7.
+     *
+     * @deprecated since Moodle 3.1
      */
     public function moodlequickform_guideeditor($elementname=null, $elementlabel=null, $attributes=null) {
+        debugging('Use of class name as constructor is deprecated', DEBUG_DEVELOPER);
         self::__construct($elementname, $elementlabel, $attributes);
     }
 
@@ -134,7 +137,7 @@ class moodlequickform_guideeditor extends HTML_QuickForm_input {
             $html .= $renderer->display_regrade_confirmation($this->getName(), $this->regradeconfirmation, $data['regrade']);
         }
         if ($this->validationerrors) {
-            $html .= $renderer->notification($this->validationerrors, 'error');
+            $html .= html_writer::div($renderer->notification($this->validationerrors));
         }
         $html .= $renderer->display_guide($data['criteria'], $data['comments'], $data['options'], $mode, $this->getName());
         return $html;
@@ -211,8 +214,11 @@ class moodlequickform_guideeditor extends HTML_QuickForm_input {
                 if (!strlen(trim($criterion['maxscore']))) {
                     $errors['err_nomaxscore'] = 1;
                     $criterion['error_description'] = true;
-                } else if (!is_numeric($criterion['maxscore']) || $criterion['maxscore'] < 0) {
+                } else if (!is_numeric($criterion['maxscore'])) {
                     $errors['err_maxscorenotnumeric'] = 1;
+                    $criterion['error_description'] = true;
+                } else if ($criterion['maxscore'] < 0) {
+                    $errors['err_maxscoreisnegative'] = 1;
                     $criterion['error_description'] = true;
                 }
             }

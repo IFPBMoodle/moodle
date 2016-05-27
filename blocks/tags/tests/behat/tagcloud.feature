@@ -13,8 +13,8 @@ Feature: Block tags displaying tag cloud
       | fullname  | shortname |
       | Course 1  | c1        |
     And the following "tags" exist:
-      | name         | tagtype  |
-      | Neverusedtag | official |
+      | name         | isstandard  |
+      | Neverusedtag | 1           |
     And the following "course enrolments" exist:
       | user     | course | role           |
       | teacher1 | c1     | editingteacher |
@@ -45,6 +45,6 @@ Feature: Block tags displaying tag cloud
     And I should see "Cats" in the "Tags" "block"
     And I should not see "Neverusedtag" in the "Tags" "block"
     And I click on "Dogs" "link" in the "Tags" "block"
-    And I should see "Users tagged with \"Dogs\": 1"
+    And I should see "User interests" in the ".tag-index-items h3" "css_element"
     And I should see "Teacher 1"
     And I log out

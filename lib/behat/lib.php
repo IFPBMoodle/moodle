@@ -165,8 +165,8 @@ function behat_clean_init_config() {
         'wwwroot', 'dataroot', 'dirroot', 'admin', 'directorypermissions', 'filepermissions',
         'umaskpermissions', 'dbtype', 'dblibrary', 'dbhost', 'dbname', 'dbuser', 'dbpass', 'prefix',
         'dboptions', 'proxyhost', 'proxyport', 'proxytype', 'proxyuser', 'proxypassword',
-        'proxybypass', 'theme', 'pathtogs', 'pathtoclam', 'pathtodu', 'aspellpath', 'pathtodot', 'skiplangupgrade',
-        'altcacheconfigpath'
+        'proxybypass', 'theme', 'pathtogs', 'pathtodu', 'aspellpath', 'pathtodot', 'skiplangupgrade',
+        'altcacheconfigpath', 'pathtounoconv'
     ));
 
     // Add extra allowed settings.
