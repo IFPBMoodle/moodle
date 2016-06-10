@@ -18,7 +18,7 @@ $CFG->dboptions = array (
 );
 
 $CFG->wwwroot   = 'http://localhost/moodle';
-$CFG->dataroot  = 'C:\\wamp\\moodledata';
+$CFG->dataroot  = '/var/www/moodledata';
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
